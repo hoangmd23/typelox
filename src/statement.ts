@@ -1,0 +1,81 @@
+import type {Expr} from "./expression.js";
+import type {Token} from "./token.js";
+
+export abstract class Stmt
+{
+    public abstract accept<T>(visitor: StmtVisitor<T>): void;
+}
+
+export interface StmtVisitor<T>
+{
+    visitExpressionStmt(stmt: ExprStmt): T;
+    visitPrintStmt(stmt: PrintStmt): T;
+    visitVarStmt(stmt: VarStmt): T;
+    visitBlockStmt(stmt: BlockStmt): T;
+}
+
+export class ExprStmt extends Stmt
+{
+    public readonly expr: Expr;
+
+    constructor(expr: Expr)
+    {
+        super();
+        this.expr = expr;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitExpressionStmt(this);
+    }
+}
+
+export class PrintStmt extends Stmt
+{
+    public readonly expr: Expr;
+
+    constructor(expr: Expr)
+    {
+        super();
+        this.expr = expr;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitPrintStmt(this);
+    }
+}
+
+export class VarStmt extends Stmt
+{
+    public readonly name: Token;
+    public readonly initializer: Expr | null;
+
+    constructor(name: Token, initializer: Expr | null)
+    {
+        super();
+        this.name = name;
+        this.initializer = initializer;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitVarStmt(this);
+    }
+}
+
+export class BlockStmt extends Stmt
+{
+    public readonly statements: Stmt[];
+
+    constructor(statements: Stmt[])
+    {
+        super();
+        this.statements = statements;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitBlockStmt(this);
+    }
+}
