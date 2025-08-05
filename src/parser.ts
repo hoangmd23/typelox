@@ -92,7 +92,7 @@ export class Parser
 
         if (this.peek_match(TokenType.EQUAL))
         {
-            let equals = this.next();
+            this.next();
             let value = this.assignment();
 
             if (expr instanceof VarExpr)
