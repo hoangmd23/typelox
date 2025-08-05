@@ -6,11 +6,20 @@ import {
     Expr,
     type ExprVisitor,
     GroupingExpr,
-    LiteralExpr,
+    LiteralExpr, LogicalExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
-import {BlockStmt, type ExprStmt, IfStmt, type PrintStmt, Stmt, type StmtVisitor, VarStmt} from "./statement.js";
+import {
+    BlockStmt,
+    type ExprStmt,
+    IfStmt,
+    type PrintStmt,
+    Stmt,
+    type StmtVisitor,
+    VarStmt,
+    WhileStmt
+} from "./statement.js";
 import {Environment} from "./environment.js";
 
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
@@ -110,6 +119,27 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         return value;
     }
 
+    visitLogicalExpr(expr: LogicalExpr): any
+    {
+        let left = this.evaluate(expr.left);
+        if (expr.operator.type == TokenType.OR)
+        {
+            if (this.is_truth(left))
+                return left;
+        }
+        else if (expr.operator.type == TokenType.AND)
+        {
+            if (!this.is_truth(left))
+                return left;
+        }
+        else
+        {
+            throw new RuntimeError(expr.operator, 'Unknown logical operator');
+        }
+
+        return this.evaluate(expr.right);
+    }
+
     visitExpressionStmt(stmt: ExprStmt): void
     {
         this.evaluate(stmt.expr);
@@ -143,6 +173,14 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
             this.execute(stmt.then_branch);
         else if (stmt.else_branch !== null)
             this.execute(stmt.else_branch);
+    }
+
+    visitWhileStmt(stmt: WhileStmt): void
+    {
+        while(this.is_truth(this.evaluate(stmt.condition)))
+        {
+            this.execute(stmt.body);
+        }
     }
 
     execute_block(stmts: Stmt[], env: Environment): void

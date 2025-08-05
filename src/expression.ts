@@ -8,6 +8,7 @@ export interface ExprVisitor<T>
     visitLiteralExpr(expr: LiteralExpr): T;
     visitVarExpr(expr: VarExpr): T;
     visitAssignExpr(expr: AssignExpr): T;
+    visitLogicalExpr(expr: LogicalExpr): T;
 }
 
 export abstract class Expr
@@ -64,6 +65,26 @@ export class LiteralExpr extends Expr
     public accept<T>(visitor: ExprVisitor<T>): T
     {
         return visitor.visitLiteralExpr(this);
+    }
+}
+
+export class LogicalExpr extends Expr
+{
+    readonly left: Expr;
+    readonly operator: Token;
+    readonly right: Expr;
+
+    constructor(left: Expr, operator: Token, right: Expr)
+    {
+        super();
+        this.left = left;
+        this.operator = operator;
+        this.right = right;
+    }
+
+    public accept<T>(visitor: ExprVisitor<T>): T
+    {
+        return visitor.visitLogicalExpr(this);
     }
 }
 

@@ -13,6 +13,7 @@ export interface StmtVisitor<T>
     visitVarStmt(stmt: VarStmt): T;
     visitBlockStmt(stmt: BlockStmt): T;
     visitIfStmt(stmt: IfStmt): T;
+    visitWhileStmt(stmt: WhileStmt): T;
 }
 
 export class ExprStmt extends Stmt
@@ -98,5 +99,23 @@ export class IfStmt extends Stmt
     public accept<T>(visitor: StmtVisitor<T>): void
     {
         visitor.visitIfStmt(this);
+    }
+}
+
+export class WhileStmt extends Stmt
+{
+    public readonly condition: Expr;
+    public readonly body: Stmt;
+
+    constructor(condition: Expr, body: Stmt)
+    {
+        super();
+        this.condition = condition;
+        this.body = body;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitWhileStmt(this);
     }
 }

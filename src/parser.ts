@@ -1,6 +1,15 @@
-import {AssignExpr, BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr, VarExpr} from "./expression.js";
+import {
+    AssignExpr,
+    BinaryExpr,
+    Expr,
+    GroupingExpr,
+    LiteralExpr,
+    LogicalExpr,
+    UnaryExpr,
+    VarExpr
+} from "./expression.js";
 import {Token, TokenType} from "./token.js";
-import {BlockStmt, ExprStmt, IfStmt, PrintStmt, Stmt, VarStmt} from "./statement.js";
+import {BlockStmt, ExprStmt, IfStmt, PrintStmt, Stmt, VarStmt, WhileStmt} from "./statement.js";
 
 export class Parser
 {
@@ -64,6 +73,66 @@ export class Parser
         return new IfStmt(cond, then_branch, else_branch);
     }
 
+    private while_statement(): Stmt
+    {
+        this.expect(TokenType.LEFT_PAREN);
+        let cond = this.expression();
+        this.expect(TokenType.RIGHT_PAREN);
+
+        let body = this.statement();
+
+        return new WhileStmt(cond, body);
+    }
+
+    private for_statement(): Stmt
+    {
+        this.expect(TokenType.LEFT_PAREN);
+        let init: Stmt | null = null;
+        if (this.peek_match(TokenType.VAR))
+        {
+            this.next();
+            init = this.var_declaration();
+        }
+        else if (!this.peek_match(TokenType.SEMICOLON))
+        {
+            init = this.expression_statement();
+        }
+
+        let condition: Expr | null = null;
+        if (!this.peek_match(TokenType.SEMICOLON))
+        {
+            condition = this.expression();
+        }
+        this.expect(TokenType.SEMICOLON);
+
+        let incr: Expr | null = null;
+        if(!this.peek_match(TokenType.RIGHT_PAREN))
+        {
+            incr = this.expression();
+        }
+
+        this.expect(TokenType.RIGHT_PAREN);
+        let body = this.statement();
+
+        if (incr !== null)
+        {
+            body = new BlockStmt([body, new ExprStmt(incr)]);
+        }
+
+        if (condition === null)
+        {
+            condition = new LiteralExpr(true);
+        }
+
+        body = new WhileStmt(condition, body);
+
+        if (init !== null)
+        {
+            body = new BlockStmt([init, body]);
+        }
+        return body;
+    }
+
     private statement(): Stmt
     {
         if(this.peek_match(TokenType.PRINT))
@@ -80,6 +149,16 @@ export class Parser
         {
             this.next();
             return this.if_statement();
+        }
+        else if(this.peek_match(TokenType.WHILE))
+        {
+            this.next();
+            return this.while_statement();
+        }
+        else if(this.peek_match(TokenType.FOR))
+        {
+            this.next();
+            return this.for_statement();
         }
         return this.expression_statement();
     }
@@ -109,9 +188,36 @@ export class Parser
         return new ExprStmt(value);
     }
 
-    private assignment(): Expr
+    private and(): Expr
     {
         let expr = this.equality();
+
+        while(this.peek_match(TokenType.AND))
+        {
+            let operator = this.next();
+            let right = this.equality();
+            expr = new LogicalExpr(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private or(): Expr
+    {
+        let expr = this.and();
+        while(this.peek_match(TokenType.OR))
+        {
+            let operator = this.next();
+            let right = this.and();
+            expr = new LogicalExpr(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private assignment(): Expr
+    {
+        let expr = this.or();
 
         if (this.peek_match(TokenType.EQUAL))
         {
