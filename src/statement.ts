@@ -12,6 +12,7 @@ export interface StmtVisitor<T>
     visitPrintStmt(stmt: PrintStmt): T;
     visitVarStmt(stmt: VarStmt): T;
     visitBlockStmt(stmt: BlockStmt): T;
+    visitIfStmt(stmt: IfStmt): T;
 }
 
 export class ExprStmt extends Stmt
@@ -77,5 +78,25 @@ export class BlockStmt extends Stmt
     public accept<T>(visitor: StmtVisitor<T>): void
     {
         visitor.visitBlockStmt(this);
+    }
+}
+
+export class IfStmt extends Stmt
+{
+    public readonly condition: Expr;
+    public readonly then_branch: Stmt;
+    public readonly else_branch: Stmt | null;
+
+    constructor(condition: Expr, then_branch: Stmt, else_branch: Stmt | null)
+    {
+        super();
+        this.condition = condition;
+        this.then_branch = then_branch;
+        this.else_branch = else_branch;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitIfStmt(this);
     }
 }

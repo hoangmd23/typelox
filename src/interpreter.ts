@@ -10,7 +10,7 @@ import {
     UnaryExpr,
     VarExpr
 } from "./expression.js";
-import {BlockStmt, type ExprStmt, type PrintStmt, Stmt, type StmtVisitor, VarStmt} from "./statement.js";
+import {BlockStmt, type ExprStmt, IfStmt, type PrintStmt, Stmt, type StmtVisitor, VarStmt} from "./statement.js";
 import {Environment} from "./environment.js";
 
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
@@ -134,6 +134,15 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     visitBlockStmt(stmt: BlockStmt): void
     {
         this.execute_block(stmt.statements, new Environment(this.env));
+    }
+
+    visitIfStmt(stmt: IfStmt): void
+    {
+        let cond = this.evaluate(stmt.condition);
+        if (this.is_truth(cond))
+            this.execute(stmt.then_branch);
+        else if (stmt.else_branch !== null)
+            this.execute(stmt.else_branch);
     }
 
     execute_block(stmts: Stmt[], env: Environment): void

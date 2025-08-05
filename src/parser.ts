@@ -1,6 +1,6 @@
 import {AssignExpr, BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr, VarExpr} from "./expression.js";
 import {Token, TokenType} from "./token.js";
-import {BlockStmt, ExprStmt, PrintStmt, Stmt, VarStmt} from "./statement.js";
+import {BlockStmt, ExprStmt, IfStmt, PrintStmt, Stmt, VarStmt} from "./statement.js";
 
 export class Parser
 {
@@ -46,6 +46,24 @@ export class Parser
         return new VarStmt(name, initializer);
     }
 
+    private if_statement(): Stmt
+    {
+        this.expect(TokenType.LEFT_PAREN);
+        let cond = this.expression();
+        this.expect(TokenType.RIGHT_PAREN);
+
+        let then_branch = this.statement();
+        let else_branch: Stmt | null = null;
+
+        if(this.peek_match(TokenType.ELSE))
+        {
+            this.next();
+            else_branch = this.statement();
+        }
+
+        return new IfStmt(cond, then_branch, else_branch);
+    }
+
     private statement(): Stmt
     {
         if(this.peek_match(TokenType.PRINT))
@@ -57,6 +75,11 @@ export class Parser
         {
             this.next();
             return this.block();
+        }
+        else if(this.peek_match(TokenType.IF))
+        {
+            this.next();
+            return this.if_statement();
         }
         return this.expression_statement();
     }
