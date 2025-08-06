@@ -28,13 +28,16 @@ import {Environment} from "./environment.js";
 class Return extends Error
 {
     readonly value: any;
-    constructor(value: any) {
+
+    constructor(value: any)
+    {
         super();
         this.value = value;
     }
 }
 
-export abstract class LoxCallable {
+export abstract class LoxCallable
+{
     abstract call(i: Interpreter, args: any[]): any;
 
     abstract arity(): number;
@@ -42,17 +45,20 @@ export abstract class LoxCallable {
     abstract to_string(): string;
 }
 
-export class LoxFunction extends LoxCallable {
+export class LoxFunction extends LoxCallable
+{
     private readonly func: FunctionStmt;
     private readonly closure: Environment;
 
-    constructor(f: FunctionStmt, closure: Environment) {
+    constructor(f: FunctionStmt, closure: Environment)
+    {
         super();
         this.func = f;
         this.closure = closure;
     }
 
-    arity(): number {
+    arity(): number
+    {
         return this.func.params.length;
     }
 
@@ -64,11 +70,14 @@ export class LoxFunction extends LoxCallable {
             env.define(this.func.params[i]!.lexeme, args[i]);
         }
 
-        try {
+        try
+        {
             i.execute_block(this.func.body, env);
         }
-        catch (ex) {
-            if (ex instanceof Return) {
+        catch (ex)
+        {
+            if (ex instanceof Return)
+            {
                 return ex.value;
             }
             else
@@ -79,7 +88,8 @@ export class LoxFunction extends LoxCallable {
         return null;
     }
 
-    to_string(): string {
+    to_string(): string
+    {
         return `<fn ${this.func.name.lexeme}>`;
     }
 }
@@ -102,7 +112,8 @@ class GlobalClock extends LoxCallable
     }
 }
 
-export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
+export class Interpreter implements ExprVisitor<any>, StmtVisitor<void>
+{
     readonly globals = new Environment();
     private env = this.globals;
     private readonly locals = new Map<Expr, number>();
@@ -112,31 +123,37 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         this.globals.define('clock', new GlobalClock());
     }
 
-    is_truth(obj: any): boolean {
+    is_truth(obj: any): boolean
+    {
         if (obj === null) return false;
         if (typeof obj === "boolean") return obj;
         return true;
     }
 
-    is_equal(left: any, right: any): boolean {
+    is_equal(left: any, right: any): boolean
+    {
         return left === right;
     }
 
-    check_number_operand(operator: Token, operand: any) {
+    check_number_operand(operator: Token, operand: any)
+    {
         if (typeof operand === "number") return;
         throw new RuntimeError(operator, 'Operand must be a number.');
     }
 
-    check_number_operands(operator: Token, left: any, right: any) {
+    check_number_operands(operator: Token, left: any, right: any)
+    {
         if (typeof left === "number" && typeof right === "number") return;
         throw new RuntimeError(operator, 'Operands must be numbers.');
     }
 
-    visitBinaryExpr(expr: BinaryExpr): any {
+    visitBinaryExpr(expr: BinaryExpr): any
+    {
         const left = this.evaluate(expr.left);
         const right = this.evaluate(expr.right);
 
-        switch (expr.operator.type) {
+        switch (expr.operator.type)
+        {
             case TokenType.MINUS:
                 this.check_number_operands(expr.operator, left, right);
                 return Number(left) - Number(right);
@@ -173,17 +190,21 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         return null;
     }
 
-    visitGroupingExpr(expr: GroupingExpr): any {
+    visitGroupingExpr(expr: GroupingExpr): any
+    {
         return this.evaluate(expr.expression);
     }
 
-    visitLiteralExpr(expr: LiteralExpr): any {
+    visitLiteralExpr(expr: LiteralExpr): any
+    {
         return expr.value;
     }
 
-    visitUnaryExpr(expr: UnaryExpr): any {
+    visitUnaryExpr(expr: UnaryExpr): any
+    {
         let right = this.evaluate(expr.right);
-        switch (expr.operator.type) {
+        switch (expr.operator.type)
+        {
             case TokenType.MINUS:
                 this.check_number_operand(expr.operator, right);
                 return -Number(right);
@@ -207,7 +228,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         }
     }
 
-    visitVarExpr(expr: VarExpr) : any
+    visitVarExpr(expr: VarExpr): any
     {
         return this.look_up_variable(expr.name, expr);
     }
@@ -286,7 +307,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
     visitWhileStmt(stmt: WhileStmt): void
     {
-        while(this.is_truth(this.evaluate(stmt.condition)))
+        while (this.is_truth(this.evaluate(stmt.condition)))
         {
             this.execute(stmt.body);
         }
@@ -328,7 +349,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     visitCallExpr(expr: CallExpr): any
     {
         let args: any[] = [];
-        for(const arg of expr.arguments)
+        for (const arg of expr.arguments)
         {
             args.push(this.evaluate(arg));
         }
@@ -348,7 +369,8 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         }
     }
 
-    evaluate(expr: Expr): any {
+    evaluate(expr: Expr): any
+    {
         return expr.accept(this);
     }
 
@@ -357,14 +379,19 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         stmt.accept(this);
     }
 
-    interpret(stmts: Stmt[]): void {
-        try {
+    interpret(stmts: Stmt[]): void
+    {
+        try
+        {
             for (const stmt of stmts)
             {
                 this.execute(stmt);
             }
-        } catch (err) {
-            if (err instanceof RuntimeError) {
+        }
+        catch (err)
+        {
+            if (err instanceof RuntimeError)
+            {
                 Lox.runtime_error(err);
             }
         }

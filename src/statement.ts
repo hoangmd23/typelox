@@ -9,12 +9,19 @@ export abstract class Stmt
 export interface StmtVisitor<T>
 {
     visitExpressionStmt(stmt: ExprStmt): T;
+
     visitPrintStmt(stmt: PrintStmt): T;
+
     visitVarStmt(stmt: VarStmt): T;
+
     visitBlockStmt(stmt: BlockStmt): T;
+
     visitIfStmt(stmt: IfStmt): T;
+
     visitWhileStmt(stmt: WhileStmt): T;
+
     visitFunctionStmt(stmt: FunctionStmt): T;
+
     visitReturnStmt(stmt: ReturnStmt): T;
 }
 

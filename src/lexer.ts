@@ -20,26 +20,31 @@ const keywords: { [key: string]: TokenType } = {
     "while": TokenType.WHILE,
 }
 
-export class Lexer {
+export class Lexer
+{
     private readonly code: string;
 
     private start: number = 0;
     private current: number = 0;
     private line: number = 1;
 
-    constructor(code: string) {
+    constructor(code: string)
+    {
         this.code = code;
     }
 
-    private has_more(): boolean {
+    private has_more(): boolean
+    {
         return this.current < this.code.length;
     }
 
-    private make_token(token_type: TokenType, value: any = null): Token {
+    private make_token(token_type: TokenType, value: any = null): Token
+    {
         return new Token(token_type, this.code.slice(this.start, this.current), value, this.line);
     }
 
-    private check_next(expected: string): boolean {
+    private check_next(expected: string): boolean
+    {
         if (!this.has_more())
             return false;
 
@@ -50,44 +55,51 @@ export class Lexer {
         return true;
     }
 
-    private peek_char(): string | null {
+    private peek_char(): string | null
+    {
         if (this.has_more())
             return this.code[this.current]!;
         else
             return null;
     }
 
-    private peek_next_char(): string | null {
+    private peek_next_char(): string | null
+    {
         if (this.current + 1 >= this.code.length)
             return null;
         return this.code[this.current + 1]!;
     }
 
-    private next_char(): string | null {
+    private next_char(): string | null
+    {
         const next = this.peek_char();
         this.current++;
         return next;
     }
 
-    private is_digit(char: string | null): boolean {
+    private is_digit(char: string | null): boolean
+    {
         if (char == null)
             return false;
         return char >= '0' && char <= '9';
     }
 
-    private is_identifier(char: string | null): boolean {
+    private is_identifier(char: string | null): boolean
+    {
         if (char == null)
             return false;
         return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char == '_');
     }
 
-    private next_token(): Token | null {
+    private next_token(): Token | null
+    {
         const char = this.next_char();
 
         if (char === null)
             return null;
 
-        switch (char) {
+        switch (char)
+        {
             case '(':
                 return this.make_token(TokenType.LEFT_PAREN);
             case ')':
@@ -117,10 +129,13 @@ export class Lexer {
             case '>':
                 return this.make_token(this.check_next('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER);
             case '/':
-                if (this.check_next('/')) {
+                if (this.check_next('/'))
+                {
                     while (this.has_more() && this.peek_char() != '\n')
                         this.next_char();
-                } else {
+                }
+                else
+                {
                     return this.make_token(TokenType.SLASH);
                 }
                 break;
@@ -132,13 +147,15 @@ export class Lexer {
                 this.line++;
                 break;
             case '"':
-                while (this.peek_char() != '"' && this.has_more()) {
+                while (this.peek_char() != '"' && this.has_more())
+                {
                     if (this.peek_char() == '\n')
                         this.line++;
                     this.next_char();
                 }
 
-                if (!this.has_more()) {
+                if (!this.has_more())
+                {
                     Lox.error(this.line, 'Unterminated string.');
                 }
 
@@ -147,11 +164,13 @@ export class Lexer {
 
                 return this.make_token(TokenType.STRING, this.code.slice(this.start + 1, this.current - 1));
             default:
-                if (this.is_digit(char)) {
+                if (this.is_digit(char))
+                {
                     while (this.is_digit(this.peek_char()))
                         this.next_token();
 
-                    if (this.peek_char() == '.' && this.is_digit(this.peek_next_char())) {
+                    if (this.peek_char() == '.' && this.is_digit(this.peek_next_char()))
+                    {
                         // consume .
                         this.next_token();
 
@@ -160,7 +179,9 @@ export class Lexer {
                     }
 
                     return this.make_token(TokenType.NUMBER, Number(this.code.slice(this.start, this.current)))
-                } else if (this.is_identifier(char)) {
+                }
+                else if (this.is_identifier(char))
+                {
                     while (this.is_digit(this.peek_char()) || this.is_identifier(this.peek_char()))
                         this.next_token();
 
@@ -171,7 +192,9 @@ export class Lexer {
                         token_type = keywords[value]!;
 
                     return this.make_token(token_type, value);
-                } else {
+                }
+                else
+                {
                     Lox.error(this.line, 'Unknown token ' + char);
                 }
         }
@@ -179,9 +202,11 @@ export class Lexer {
         return null;
     }
 
-    public scan_tokens(): Token[] {
+    public scan_tokens(): Token[]
+    {
         const tokens: Token[] = [];
-        while (this.has_more()) {
+        while (this.has_more())
+        {
             this.start = this.current;
             const token = this.next_token();
             if (token !== null)

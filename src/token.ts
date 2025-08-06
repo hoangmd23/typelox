@@ -22,22 +22,22 @@ export enum TokenType
 
 export class Token
 {
-     readonly type: TokenType;
-     readonly lexeme: string;
-     readonly value: any;
-     readonly line: number;
+    readonly type: TokenType;
+    readonly lexeme: string;
+    readonly value: any;
+    readonly line: number;
 
-     constructor(type: TokenType, lexeme: string, value: any, line: number)
-     {
-         this.type = type;
-         this.lexeme = lexeme;
-         this.value = value;
-         this.line = line;
-     }
+    constructor(type: TokenType, lexeme: string, value: any, line: number)
+    {
+        this.type = type;
+        this.lexeme = lexeme;
+        this.value = value;
+        this.line = line;
+    }
 
-     toString(): string
-     {
+    toString(): string
+    {
         return `${this.line}: ${TokenType[this.type]} ${this.lexeme}`;
-     }
+    }
 }
 

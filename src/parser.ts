@@ -27,7 +27,8 @@ export class Parser
     private readonly tokens: Token[];
     private current: number = 0;
 
-    constructor(tokens: Token[]) {
+    constructor(tokens: Token[])
+    {
         this.tokens = tokens;
     }
 
@@ -46,11 +47,13 @@ export class Parser
         const name = this.expect(TokenType.IDENTIFIER);
         this.expect(TokenType.LEFT_PAREN);
         let params: Token[] = [];
-        if(!this.peek_match(TokenType.RIGHT_PAREN))
+        if (!this.peek_match(TokenType.RIGHT_PAREN))
         {
-            while(true) {
+            while (true)
+            {
                 params.push(this.expect(TokenType.IDENTIFIER));
-                if (params.length > 255) {
+                if (params.length > 255)
+                {
                     throw new Error(`Can't have more than 255 parameters.`)
                 }
                 if (this.peek_match(TokenType.COMMA))
@@ -67,11 +70,12 @@ export class Parser
 
     private declaration(): Stmt
     {
-        if(this.peek_match(TokenType.VAR)) {
+        if (this.peek_match(TokenType.VAR))
+        {
             this.next()
             return this.var_declaration();
         }
-        else if(this.peek_match(TokenType.FUN))
+        else if (this.peek_match(TokenType.FUN))
         {
             this.next();
             return this.function();
@@ -84,7 +88,7 @@ export class Parser
         let name = this.expect(TokenType.IDENTIFIER);
         let initializer: Expr | null = null;
 
-        if(this.peek_match(TokenType.EQUAL))
+        if (this.peek_match(TokenType.EQUAL))
         {
             this.next();
             initializer = this.expression();
@@ -104,7 +108,7 @@ export class Parser
         let then_branch = this.statement();
         let else_branch: Stmt | null = null;
 
-        if(this.peek_match(TokenType.ELSE))
+        if (this.peek_match(TokenType.ELSE))
         {
             this.next();
             else_branch = this.statement();
@@ -146,7 +150,7 @@ export class Parser
         this.expect(TokenType.SEMICOLON);
 
         let incr: Expr | null = null;
-        if(!this.peek_match(TokenType.RIGHT_PAREN))
+        if (!this.peek_match(TokenType.RIGHT_PAREN))
         {
             incr = this.expression();
         }
@@ -177,7 +181,7 @@ export class Parser
     {
         let keyword = this.next();
         let value: Expr | null = null;
-        if(!this.peek_match(TokenType.SEMICOLON))
+        if (!this.peek_match(TokenType.SEMICOLON))
             value = this.expression();
         this.expect(TokenType.SEMICOLON);
         return new ReturnStmt(keyword, value);
@@ -185,32 +189,32 @@ export class Parser
 
     private statement(): Stmt
     {
-        if(this.peek_match(TokenType.PRINT))
+        if (this.peek_match(TokenType.PRINT))
         {
             this.next();
             return this.print_statement();
         }
-        else if(this.peek_match(TokenType.LEFT_BRACE))
+        else if (this.peek_match(TokenType.LEFT_BRACE))
         {
             this.next();
             return this.block();
         }
-        else if(this.peek_match(TokenType.IF))
+        else if (this.peek_match(TokenType.IF))
         {
             this.next();
             return this.if_statement();
         }
-        else if(this.peek_match(TokenType.WHILE))
+        else if (this.peek_match(TokenType.WHILE))
         {
             this.next();
             return this.while_statement();
         }
-        else if(this.peek_match(TokenType.FOR))
+        else if (this.peek_match(TokenType.FOR))
         {
             this.next();
             return this.for_statement();
         }
-        else if(this.peek_match(TokenType.RETURN))
+        else if (this.peek_match(TokenType.RETURN))
         {
             return this.return_statement();
         }
@@ -220,7 +224,7 @@ export class Parser
     private block(): Stmt
     {
         let stmts: Stmt[] = [];
-        while(!this.peek_match(TokenType.RIGHT_BRACE) && this.has_more())
+        while (!this.peek_match(TokenType.RIGHT_BRACE) && this.has_more())
         {
             stmts.push(this.declaration());
         }
@@ -246,7 +250,7 @@ export class Parser
     {
         let expr = this.equality();
 
-        while(this.peek_match(TokenType.AND))
+        while (this.peek_match(TokenType.AND))
         {
             let operator = this.next();
             let right = this.equality();
@@ -259,7 +263,7 @@ export class Parser
     private or(): Expr
     {
         let expr = this.and();
-        while(this.peek_match(TokenType.OR))
+        while (this.peek_match(TokenType.OR))
         {
             let operator = this.next();
             let right = this.and();
@@ -290,11 +294,13 @@ export class Parser
         return expr;
     }
 
-    private expression(): Expr {
+    private expression(): Expr
+    {
         return this.assignment();
     }
 
-    private has_more(): boolean {
+    private has_more(): boolean
+    {
         return this.peek().type != TokenType.EOF;
     }
 
@@ -305,7 +311,7 @@ export class Parser
 
     private peek_match(...types: TokenType[]): boolean
     {
-        if(!this.has_more())
+        if (!this.has_more())
             return false;
         return types.includes(this.peek()!.type);
     }
@@ -319,7 +325,7 @@ export class Parser
     {
         let expr = this.comparison();
 
-        while(this.peek_match(TokenType.DOUBLE_EQUAL, TokenType.NOT_EQUAL))
+        while (this.peek_match(TokenType.DOUBLE_EQUAL, TokenType.NOT_EQUAL))
         {
             const operator = this.next();
             const right = this.comparison();
@@ -332,7 +338,7 @@ export class Parser
     private comparison(): Expr
     {
         let expr = this.term();
-        while(this.peek_match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL))
+        while (this.peek_match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL))
         {
             const operator = this.next();
             const right = this.term();
@@ -344,7 +350,7 @@ export class Parser
     private term(): Expr
     {
         let expr = this.factor();
-        while(this.peek_match(TokenType.MINUS, TokenType.PLUS))
+        while (this.peek_match(TokenType.MINUS, TokenType.PLUS))
         {
             const operator = this.next();
             const right = this.factor();
@@ -357,7 +363,7 @@ export class Parser
     private factor(): Expr
     {
         let expr = this.unary();
-        while(this.peek_match(TokenType.SLASH, TokenType.STAR))
+        while (this.peek_match(TokenType.SLASH, TokenType.STAR))
         {
             const operator = this.next();
             const right = this.unary();
@@ -369,7 +375,7 @@ export class Parser
     private arguments(): Expr[]
     {
         let args: Expr[] = [this.expression()];
-        while(this.peek_match(TokenType.COMMA))
+        while (this.peek_match(TokenType.COMMA))
         {
             this.next();
             args.push(this.expression());
@@ -385,7 +391,8 @@ export class Parser
     {
         let args: Expr[] = [];
         let paren = this.next();
-        if (!this.peek_match(TokenType.RIGHT_PAREN)) {
+        if (!this.peek_match(TokenType.RIGHT_PAREN))
+        {
             args = this.arguments();
         }
         this.next();
@@ -411,7 +418,7 @@ export class Parser
 
     private unary(): Expr
     {
-        if(this.peek_match(TokenType.BANG, TokenType.MINUS))
+        if (this.peek_match(TokenType.BANG, TokenType.MINUS))
         {
             const operator = this.next();
             const right = this.unary();
@@ -422,7 +429,7 @@ export class Parser
 
     private expect(...types: TokenType[]): Token
     {
-        let matched = this.peek_match(...types) ;
+        let matched = this.peek_match(...types);
         if (matched)
         {
             return this.next();
@@ -436,7 +443,7 @@ export class Parser
     private primary(): Expr
     {
         let token = this.next();
-        switch(token.type)
+        switch (token.type)
         {
             case TokenType.FALSE:
                 return new LiteralExpr(false);
@@ -461,17 +468,22 @@ export class Parser
 }
 
 
-export function stringify(expr: Expr): string {
-    if (expr instanceof BinaryExpr) {
+export function stringify(expr: Expr): string
+{
+    if (expr instanceof BinaryExpr)
+    {
         return `(${expr.operator.lexeme} ${stringify(expr.left)} ${stringify(expr.right)})`;
     }
-    if (expr instanceof GroupingExpr) {
+    if (expr instanceof GroupingExpr)
+    {
         return `(group ${stringify(expr.expression)})`;
     }
-    if (expr instanceof LiteralExpr) {
+    if (expr instanceof LiteralExpr)
+    {
         return expr.value === null ? "nil" : expr.value.toString();
     }
-    if (expr instanceof UnaryExpr) {
+    if (expr instanceof UnaryExpr)
+    {
         return `(${expr.operator.lexeme} ${stringify(expr.right)})`;
     }
 

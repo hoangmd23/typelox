@@ -5,10 +5,12 @@ import {Interpreter} from "./interpreter.js";
 import {Lexer} from "./lexer.js";
 import {Resolver} from "./resolver.js";
 
-export class RuntimeError extends Error {
+export class RuntimeError extends Error
+{
     readonly token: Token;
 
-    constructor(token: Token, message: string) {
+    constructor(token: Token, message: string)
+    {
         super(message);
         this.token = token;
     }
@@ -19,16 +21,18 @@ export class Lox
     private static readonly interpreter = new Interpreter();
     static had_runtime_error: boolean = false;
 
-    public static error(line: number, message: string) {
+    public static error(line: number, message: string)
+    {
         console.log(`Error: ${message}`);
     }
 
-    public static runtime_error(error: RuntimeError): void {
+    public static runtime_error(error: RuntimeError): void
+    {
         console.log(`${error.message}\n[line ${error.token.line}]`);
         this.had_runtime_error = true;
     }
 
-    public static run(file_path: string) : void
+    public static run(file_path: string): void
     {
         const content = fs.readFileSync(file_path, 'utf-8');
         const lexer = new Lexer(content);
