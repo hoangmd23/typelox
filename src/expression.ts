@@ -9,6 +9,7 @@ export interface ExprVisitor<T>
     visitVarExpr(expr: VarExpr): T;
     visitAssignExpr(expr: AssignExpr): T;
     visitLogicalExpr(expr: LogicalExpr): T;
+    visitCallExpr(expr: CallExpr): T;
 }
 
 export abstract class Expr
@@ -137,6 +138,26 @@ export class AssignExpr extends Expr
     public accept<T>(visitor: ExprVisitor<T>): T
     {
         return visitor.visitAssignExpr(this);
+    }
+}
+
+export class CallExpr extends Expr
+{
+    readonly callee: Expr;
+    readonly paren: Token;
+    readonly arguments: Expr[];
+
+    constructor(callee: Expr, paren: Token, args: Expr[])
+    {
+        super();
+        this.callee = callee;
+        this.paren = paren;
+        this.arguments = args;
+    }
+
+    public accept<T>(visitor: ExprVisitor<T>): T
+    {
+        return visitor.visitCallExpr(this);
     }
 }
 

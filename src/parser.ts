@@ -1,6 +1,7 @@
 import {
     AssignExpr,
     BinaryExpr,
+    CallExpr,
     Expr,
     GroupingExpr,
     LiteralExpr,
@@ -9,7 +10,7 @@ import {
     VarExpr
 } from "./expression.js";
 import {Token, TokenType} from "./token.js";
-import {BlockStmt, ExprStmt, IfStmt, PrintStmt, Stmt, VarStmt, WhileStmt} from "./statement.js";
+import {BlockStmt, ExprStmt, FunctionStmt, IfStmt, PrintStmt, Stmt, VarStmt, WhileStmt} from "./statement.js";
 
 export class Parser
 {
@@ -30,11 +31,40 @@ export class Parser
         return res;
     }
 
+    private function(): Stmt
+    {
+        const name = this.expect(TokenType.IDENTIFIER);
+        this.expect(TokenType.LEFT_PAREN);
+        let params: Token[] = [];
+        if(!this.peek_match(TokenType.RIGHT_PAREN))
+        {
+            while(true) {
+                params.push(this.expect(TokenType.IDENTIFIER));
+                if (params.length > 255) {
+                    throw new Error(`Can't have more than 255 parameters.`)
+                }
+                if (this.peek_match(TokenType.COMMA))
+                    this.next();
+                else
+                    break;
+            }
+        }
+        this.next();
+        this.expect(TokenType.LEFT_BRACE);
+        const body = this.block() as BlockStmt;
+        return new FunctionStmt(name, params, body.statements);
+    }
+
     private declaration(): Stmt
     {
         if(this.peek_match(TokenType.VAR)) {
             this.next()
             return this.var_declaration();
+        }
+        else if(this.peek_match(TokenType.FUN))
+        {
+            this.next();
+            return this.function();
         }
         return this.statement();
     }
@@ -312,6 +342,49 @@ export class Parser
         return expr;
     }
 
+    private arguments(): Expr[]
+    {
+        let args: Expr[] = [this.expression()];
+        while(this.peek_match(TokenType.COMMA))
+        {
+            this.next();
+            args.push(this.expression());
+            if (args.length > 255)
+            {
+                throw new Error(`Expected a number of arguments to be less than 256`);
+            }
+        }
+        return args;
+    }
+
+    private finish_call(expr: Expr): Expr
+    {
+        let args: Expr[] = [];
+        let paren = this.next();
+        if (!this.peek_match(TokenType.RIGHT_PAREN)) {
+            args = this.arguments();
+        }
+        this.next();
+        return new CallExpr(expr, paren, args);
+    }
+
+    private call(): Expr
+    {
+        let expr = this.primary();
+        while (true)
+        {
+            if (this.peek_match(TokenType.LEFT_PAREN))
+            {
+                expr = this.finish_call(expr);
+            }
+            else
+            {
+                break;
+            }
+        }
+        return expr;
+    }
+
     private unary(): Expr
     {
         if(this.peek_match(TokenType.BANG, TokenType.MINUS))
@@ -320,7 +393,7 @@ export class Parser
             const right = this.unary();
             return new UnaryExpr(operator, right);
         }
-        return this.primary();
+        return this.call();
     }
 
     private expect(...types: TokenType[]): Token

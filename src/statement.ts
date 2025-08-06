@@ -14,6 +14,7 @@ export interface StmtVisitor<T>
     visitBlockStmt(stmt: BlockStmt): T;
     visitIfStmt(stmt: IfStmt): T;
     visitWhileStmt(stmt: WhileStmt): T;
+    visitFunctionStmt(stmt: FunctionStmt): T;
 }
 
 export class ExprStmt extends Stmt
@@ -117,5 +118,25 @@ export class WhileStmt extends Stmt
     public accept<T>(visitor: StmtVisitor<T>): void
     {
         visitor.visitWhileStmt(this);
+    }
+}
+
+export class FunctionStmt extends Stmt
+{
+    public readonly name: Token;
+    public readonly params: Token[];
+    public readonly body: Stmt[];
+
+    constructor(name: Token, params: Token[], body: Stmt[])
+    {
+        super();
+        this.name = name;
+        this.params = params;
+        this.body = body;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitFunctionStmt(this);
     }
 }

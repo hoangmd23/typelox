@@ -3,16 +3,19 @@ import {Lox, RuntimeError} from "./lox.js";
 import {
     AssignExpr,
     BinaryExpr,
+    CallExpr,
     Expr,
     type ExprVisitor,
     GroupingExpr,
-    LiteralExpr, LogicalExpr,
+    LiteralExpr,
+    LogicalExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
 import {
     BlockStmt,
     type ExprStmt,
+    FunctionStmt,
     IfStmt,
     type PrintStmt,
     Stmt,
@@ -22,8 +25,66 @@ import {
 } from "./statement.js";
 import {Environment} from "./environment.js";
 
+export abstract class LoxCallable {
+    abstract call(i: Interpreter, args: any[]): any;
+
+    abstract arity(): number;
+
+    abstract to_string(): string;
+}
+
+export class LoxFunction extends LoxCallable {
+    private readonly func: FunctionStmt;
+
+    constructor(f: FunctionStmt) {
+        super();
+        this.func = f;
+    }
+
+    arity(): number {
+        return this.func.params.length;
+    }
+
+    call(i: Interpreter, args: any[]): any {
+        const env = new Environment(i.globals);
+        for (let i = 0; i < this.func.params.length; i++) {
+            env.define(this.func.params[i]!.lexeme, args[i]);
+        }
+
+        i.execute_block(this.func.body, env);
+    }
+
+    to_string(): string {
+        return `<fn ${this.func.name.lexeme}>`;
+    }
+}
+
+class GlobalClock extends LoxCallable
+{
+    arity(): number
+    {
+        return 0;
+    }
+
+    call(i: Interpreter, args: any[]): any
+    {
+        return Date.now();
+    }
+
+    to_string(): string
+    {
+        return "<GlobalClock>";
+    }
+}
+
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
-    private env = new Environment();
+    readonly globals = new Environment();
+    private env = this.globals;
+
+    constructor()
+    {
+        this.globals.define('clock', new GlobalClock());
+    }
 
     is_truth(obj: any): boolean {
         if (obj === null) return false;
@@ -183,6 +244,13 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         }
     }
 
+    visitFunctionStmt(stmt: FunctionStmt): void
+    {
+        const func = new LoxFunction(stmt);
+        this.env.define(stmt.name.lexeme, func);
+    }
+
+
     execute_block(stmts: Stmt[], env: Environment): void
     {
         let prev_env = this.env;
@@ -197,6 +265,29 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         finally
         {
             this.env = prev_env;
+        }
+    }
+
+    visitCallExpr(expr: CallExpr): any
+    {
+        let args: any[] = [];
+        for(const arg of expr.arguments)
+        {
+            args.push(this.evaluate(arg));
+        }
+
+        let func = this.evaluate(expr.callee);
+        if (func instanceof LoxCallable)
+        {
+            if (args.length != func.arity())
+            {
+                throw new RuntimeError(expr.paren, `Expected ${func.arity()} arguments but got ${args.length}.`)
+            }
+            return func.call(this, args);
+        }
+        else
+        {
+            throw new RuntimeError(expr.paren, "Can only call functions and classes.")
         }
     }
 
