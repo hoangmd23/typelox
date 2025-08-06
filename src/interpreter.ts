@@ -44,10 +44,12 @@ export abstract class LoxCallable {
 
 export class LoxFunction extends LoxCallable {
     private readonly func: FunctionStmt;
+    private readonly closure: Environment;
 
-    constructor(f: FunctionStmt) {
+    constructor(f: FunctionStmt, closure: Environment) {
         super();
         this.func = f;
+        this.closure = closure;
     }
 
     arity(): number {
@@ -55,7 +57,7 @@ export class LoxFunction extends LoxCallable {
     }
 
     call(i: Interpreter, args: any[]): any {
-        const env = new Environment(i.globals);
+        const env = this.closure;
         for (let i = 0; i < this.func.params.length; i++) {
             env.define(this.func.params[i]!.lexeme, args[i]);
         }
@@ -267,7 +269,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
     visitFunctionStmt(stmt: FunctionStmt): void
     {
-        const func = new LoxFunction(stmt);
+        const func = new LoxFunction(stmt, this.env);
         this.env.define(stmt.name.lexeme, func);
     }
 
