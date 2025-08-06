@@ -10,7 +10,17 @@ import {
     VarExpr
 } from "./expression.js";
 import {Token, TokenType} from "./token.js";
-import {BlockStmt, ExprStmt, FunctionStmt, IfStmt, PrintStmt, Stmt, VarStmt, WhileStmt} from "./statement.js";
+import {
+    BlockStmt,
+    ExprStmt,
+    FunctionStmt,
+    IfStmt,
+    PrintStmt,
+    ReturnStmt,
+    Stmt,
+    VarStmt,
+    WhileStmt
+} from "./statement.js";
 
 export class Parser
 {
@@ -163,6 +173,16 @@ export class Parser
         return body;
     }
 
+    private return_statement(): Stmt
+    {
+        let keyword = this.next();
+        let value: Expr | null = null;
+        if(!this.peek_match(TokenType.SEMICOLON))
+            value = this.expression();
+        this.expect(TokenType.SEMICOLON);
+        return new ReturnStmt(keyword, value);
+    }
+
     private statement(): Stmt
     {
         if(this.peek_match(TokenType.PRINT))
@@ -189,6 +209,10 @@ export class Parser
         {
             this.next();
             return this.for_statement();
+        }
+        else if(this.peek_match(TokenType.RETURN))
+        {
+            return this.return_statement();
         }
         return this.expression_statement();
     }

@@ -17,13 +17,22 @@ import {
     type ExprStmt,
     FunctionStmt,
     IfStmt,
-    type PrintStmt,
+    type PrintStmt, ReturnStmt,
     Stmt,
     type StmtVisitor,
     VarStmt,
     WhileStmt
 } from "./statement.js";
 import {Environment} from "./environment.js";
+
+class Return extends Error
+{
+    readonly value: any;
+    constructor(value: any) {
+        super();
+        this.value = value;
+    }
+}
 
 export abstract class LoxCallable {
     abstract call(i: Interpreter, args: any[]): any;
@@ -51,7 +60,19 @@ export class LoxFunction extends LoxCallable {
             env.define(this.func.params[i]!.lexeme, args[i]);
         }
 
-        i.execute_block(this.func.body, env);
+        try {
+            i.execute_block(this.func.body, env);
+        }
+        catch (ex) {
+            if (ex instanceof Return) {
+                return ex.value;
+            }
+            else
+            {
+                throw ex;
+            }
+        }
+        return null;
     }
 
     to_string(): string {
@@ -250,6 +271,15 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         this.env.define(stmt.name.lexeme, func);
     }
 
+    visitReturnStmt(stmt: ReturnStmt): void
+    {
+        let value: any = null;
+        if (stmt.value !== null)
+        {
+            value = this.evaluate(stmt.value);
+        }
+        throw new Return(value);
+    }
 
     execute_block(stmts: Stmt[], env: Environment): void
     {
