@@ -56,9 +56,11 @@ export class LoxFunction extends LoxCallable {
         return this.func.params.length;
     }
 
-    call(i: Interpreter, args: any[]): any {
-        const env = this.closure;
-        for (let i = 0; i < this.func.params.length; i++) {
+    call(i: Interpreter, args: any[]): any
+    {
+        const env = new Environment(this.closure);
+        for (let i = 0; i < this.func.params.length; i++)
+        {
             env.define(this.func.params[i]!.lexeme, args[i]);
         }
 
@@ -103,6 +105,7 @@ class GlobalClock extends LoxCallable
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     readonly globals = new Environment();
     private env = this.globals;
+    private readonly locals = new Map<Expr, number>();
 
     constructor()
     {
@@ -191,15 +194,37 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         return null;
     }
 
+    look_up_variable(name: Token, expr: Expr): any
+    {
+        const distance = this.locals.get(expr);
+        if (distance !== undefined)
+        {
+            return this.env.get_at(distance, name.lexeme);
+        }
+        else
+        {
+            return this.globals.get(name);
+        }
+    }
+
     visitVarExpr(expr: VarExpr) : any
     {
-        return this.env.get(expr.name);
+        return this.look_up_variable(expr.name, expr);
     }
 
     visitAssignExpr(expr: AssignExpr): any
     {
         let value = this.evaluate(expr.value);
-        this.env.assign(expr.name, value);
+
+        const distance = this.locals.get(expr);
+        if (distance !== undefined)
+        {
+            this.env.assign_at(distance, expr.name, value);
+        }
+        else
+        {
+            this.globals.assign(expr.name, value);
+        }
         return value;
     }
 
@@ -343,5 +368,10 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
                 Lox.runtime_error(err);
             }
         }
+    }
+
+    resolve(expr: Expr, depth: number)
+    {
+        this.locals.set(expr, depth);
     }
 }

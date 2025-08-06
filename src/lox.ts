@@ -3,6 +3,7 @@ import {Token} from "./token.js";
 import {Parser} from "./parser.js";
 import {Interpreter} from "./interpreter.js";
 import {Lexer} from "./lexer.js";
+import {Resolver} from "./resolver.js";
 
 export class RuntimeError extends Error {
     readonly token: Token;
@@ -38,6 +39,8 @@ export class Lox
         // }
         const parser = new Parser(tokens);
         const stmts = parser.parse();
+        const resolver = new Resolver(this.interpreter);
+        resolver.resolve_statements(stmts);
         this.interpreter.interpret(stmts);
     }
 }
