@@ -513,26 +513,3 @@ export class Parser
     }
 
 }
-
-
-export function stringify(expr: Expr): string
-{
-    if (expr instanceof BinaryExpr)
-    {
-        return `(${expr.operator.lexeme} ${stringify(expr.left)} ${stringify(expr.right)})`;
-    }
-    if (expr instanceof GroupingExpr)
-    {
-        return `(group ${stringify(expr.expression)})`;
-    }
-    if (expr instanceof LiteralExpr)
-    {
-        return expr.value === null ? "nil" : expr.value.toString();
-    }
-    if (expr instanceof UnaryExpr)
-    {
-        return `(${expr.operator.lexeme} ${stringify(expr.right)})`;
-    }
-
-    throw new Error("Unknown expression type");
-}
