@@ -8,7 +8,7 @@ import {
     type ExprVisitor, GetExpr,
     GroupingExpr,
     LiteralExpr,
-    LogicalExpr, SetExpr, ThisExpr,
+    LogicalExpr, SetExpr, SuperExpr, ThisExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
@@ -162,12 +162,14 @@ class LoxInstance
 class LoxClass extends LoxCallable
 {
     readonly name: String;
+    readonly superclass: LoxClass | null;
     readonly methods: Map<string, LoxFunction>;
 
-    constructor(name: string, methods: Map<string, LoxFunction>)
+    constructor(name: string, superclass: LoxClass | null, methods: Map<string, LoxFunction>)
     {
         super();
         this.name = name;
+        this.superclass = superclass;
         this.methods = methods;
     }
 
@@ -200,6 +202,11 @@ class LoxClass extends LoxCallable
         if (this.methods.has(name))
         {
             return this.methods.get(name)!;
+        }
+
+        if (this.superclass !== null)
+        {
+            return this.superclass.find_method(name);
         }
         return null;
     }
@@ -464,14 +471,37 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void>
 
     visitClassStmt(stmt: ClassStmt): void
     {
+        let superclass: any = null;
+        if (stmt.superclass !== null)
+        {
+            superclass = this.evaluate(stmt.superclass);
+            if (!(superclass instanceof LoxClass))
+            {
+                throw new RuntimeError(stmt.superclass.name, `Superclass must be a class.`)
+            }
+        }
+
         this.env.define(stmt.name.lexeme, null);
+
+        if (stmt.superclass !== null)
+        {
+            this.env = new Environment(this.env);
+            this.env.define('super', superclass);
+        }
+
         const methods: Map<string, LoxFunction> = new Map();
         for (const m of stmt.methods)
         {
             const func = new LoxFunction(m, this.env, m.name.lexeme === "init");
             methods.set(m.name.lexeme, func);
         }
-        const klass = new LoxClass(stmt.name.lexeme, methods);
+        const klass = new LoxClass(stmt.name.lexeme, superclass as LoxClass, methods);
+
+        if (stmt.superclass !== null)
+        {
+            this.env = this.env.enclosing!;
+        }
+
         this.env.assign(stmt.name, klass);
     }
 
@@ -502,6 +532,19 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void>
     visitThisExpr(expr: ThisExpr): any
     {
         return this.look_up_variable(expr.keyword, expr);
+    }
+
+    visitSuperExpr(expr: SuperExpr): any
+    {
+        let distance = this.locals.get(expr)!;
+        const superclass = this.env.get_at(distance, 'super') as LoxClass;
+        const object = this.env.get_at(distance - 1, 'this') as LoxInstance;
+        const method = superclass.find_method(expr.method.lexeme);
+        if (method == null)
+        {
+            throw new RuntimeError(expr.method, `Undefined property ${expr.method.lexeme}.`)
+        }
+        return method.bind(object);
     }
 
     evaluate(expr: Expr): any

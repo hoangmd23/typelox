@@ -1,4 +1,4 @@
-import type {Expr} from "./expression.js";
+import {type Expr, VarExpr} from "./expression.js";
 import type {Token} from "./token.js";
 
 export abstract class Stmt
@@ -172,12 +172,14 @@ export class ReturnStmt extends Stmt
 export class ClassStmt extends Stmt
 {
     public readonly name: Token;
+    public readonly superclass: VarExpr | null;
     public readonly methods: FunctionStmt[];
 
-    constructor(name: Token, methods: FunctionStmt[])
+    constructor(name: Token, superclass: VarExpr | null, methods: FunctionStmt[])
     {
         super();
         this.name = name;
+        this.superclass = superclass;
         this.methods = methods;
     }
 

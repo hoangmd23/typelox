@@ -4,7 +4,7 @@ import {RuntimeError} from "./lox.js";
 export class Environment
 {
     private readonly values = new Map<string, any>;
-    private readonly enclosing: Environment | null;
+    public readonly enclosing: Environment | null;
 
     constructor(enclosing: Environment | null = null)
     {

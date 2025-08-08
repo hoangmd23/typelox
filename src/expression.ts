@@ -23,6 +23,8 @@ export interface ExprVisitor<T>
     visitSetExpr(expr: SetExpr): T;
 
     visitThisExpr(expr: ThisExpr): T;
+
+    visitSuperExpr(expr: SuperExpr): T;
 }
 
 export abstract class Expr
@@ -225,5 +227,23 @@ export class ThisExpr extends Expr
     public accept<T>(visitor: ExprVisitor<T>): T
     {
         return visitor.visitThisExpr(this);
+    }
+}
+
+export class SuperExpr extends Expr
+{
+    readonly keyword: Token;
+    readonly method: Token;
+
+    constructor(keyword: Token, method: Token)
+    {
+        super();
+        this.keyword = keyword;
+        this.method = method;
+    }
+
+    public accept<T>(visitor: ExprVisitor<T>): T
+    {
+        return visitor.visitSuperExpr(this);
     }
 }

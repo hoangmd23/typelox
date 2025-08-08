@@ -4,7 +4,7 @@ import {
     CallExpr,
     Expr,
     type ExprVisitor, GetExpr, GroupingExpr, LiteralExpr,
-    LogicalExpr, SetExpr, ThisExpr,
+    LogicalExpr, SetExpr, SuperExpr, ThisExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
@@ -33,6 +33,7 @@ enum ClassType
 {
     NONE,
     CLASS,
+    SUBCLASS,
 }
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
@@ -232,6 +233,19 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
 
         this.declare(stmt.name);
         this.define(stmt.name);
+
+        if (stmt.superclass !== null)
+        {
+            this.current_class = ClassType.SUBCLASS;
+            if (stmt.name.lexeme === stmt.superclass.name.lexeme)
+            {
+                throw new Error(`A class can't inherit from itself.`)
+            }
+            this.resolve_expr(stmt.superclass);
+            this.begin_scope();
+            this.get_last_scope()!.set('super', true);
+        }
+
         this.begin_scope();
 
         this.get_last_scope()!.set("this", true);
@@ -245,6 +259,8 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
         }
 
         this.end_scope();
+        if (stmt.superclass !== null)
+            this.end_scope();
         this.current_class = enclosing_class;
     }
 
@@ -264,6 +280,19 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
         if (this.current_class == ClassType.NONE)
         {
             throw new Error(`Can't use 'this' outside of a class.`)
+        }
+        this.resolve_local(expr, expr.keyword);
+    }
+
+    visitSuperExpr(expr: SuperExpr): void
+    {
+        if (this.current_class == ClassType.NONE)
+        {
+            throw new Error(`Can't use 'super' outside of a class.`)
+        }
+        else if (this.current_class != ClassType.SUBCLASS)
+        {
+            throw new Error(`Can't use 'super' in a class with no superclass.`)
         }
         this.resolve_local(expr, expr.keyword);
     }

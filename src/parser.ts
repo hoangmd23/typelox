@@ -2,16 +2,21 @@ import {
     AssignExpr,
     BinaryExpr,
     CallExpr,
-    Expr, GetExpr,
+    Expr,
+    GetExpr,
     GroupingExpr,
     LiteralExpr,
-    LogicalExpr, SetExpr, ThisExpr,
+    LogicalExpr,
+    SetExpr,
+    SuperExpr,
+    ThisExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
 import {Token, TokenType} from "./token.js";
 import {
-    BlockStmt, ClassStmt,
+    BlockStmt,
+    ClassStmt,
     ExprStmt,
     FunctionStmt,
     IfStmt,
@@ -91,6 +96,13 @@ export class Parser
     private class_stmt(): Stmt
     {
         const name = this.next();
+        let superclass: VarExpr | null = null;
+
+        if (this.peek_match(TokenType.LESS))
+        {
+            this.next();
+            superclass = new VarExpr(this.next());
+        }
         this.expect(TokenType.LEFT_BRACE);
 
         const methods: FunctionStmt[] = [];
@@ -99,7 +111,7 @@ export class Parser
             methods.push(this.function());
         }
         this.expect(TokenType.RIGHT_BRACE);
-        return new ClassStmt(name, methods);
+        return new ClassStmt(name, superclass, methods);
     }
 
     private var_declaration(): Stmt
@@ -491,6 +503,10 @@ export class Parser
                 return new VarExpr(token);
             case TokenType.THIS:
                 return new ThisExpr(token);
+            case TokenType.SUPER:
+                this.expect(TokenType.DOT);
+                const method = this.expect(TokenType.IDENTIFIER);
+                return new SuperExpr(token, method);
             default:
                 throw new Error("Unexpected token type");
         }
