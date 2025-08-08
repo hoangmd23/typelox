@@ -3,13 +3,13 @@ import {
     BinaryExpr,
     CallExpr,
     Expr,
-    type ExprVisitor, GroupingExpr, LiteralExpr,
-    LogicalExpr,
+    type ExprVisitor, GetExpr, GroupingExpr, LiteralExpr,
+    LogicalExpr, SetExpr, ThisExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
 import {
-    BlockStmt,
+    BlockStmt, ClassStmt,
     ExprStmt,
     FunctionStmt,
     IfStmt,
@@ -25,6 +25,14 @@ enum FunctionType
 {
     NONE,
     FUNCTION,
+    INITIALIZER,
+    METHOD,
+}
+
+enum ClassType
+{
+    NONE,
+    CLASS,
 }
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
@@ -32,6 +40,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
     private readonly intepreter: Interpreter;
     private readonly scopes: Map<string, boolean>[] = [];
     private current_function = FunctionType.NONE;
+    private current_class = ClassType.NONE;
 
     constructor(intepreter: Interpreter)
     {
@@ -166,6 +175,10 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
 
         if (stmt.value !== null)
         {
+            if (this.current_function == FunctionType.INITIALIZER)
+            {
+                throw new Error(`Can't return a value from an initializer.`)
+            }
             this.resolve_expr(stmt.value);
         }
     }
@@ -210,6 +223,49 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void>
     {
         this.resolve_expr(stmt.condition);
         this.resolve_statement(stmt.body);
+    }
+
+    visitClassStmt(stmt: ClassStmt): void
+    {
+        let enclosing_class = this.current_class;
+        this.current_class = ClassType.CLASS;
+
+        this.declare(stmt.name);
+        this.define(stmt.name);
+        this.begin_scope();
+
+        this.get_last_scope()!.set("this", true);
+
+        for (const m of stmt.methods)
+        {
+            let declaration = FunctionType.METHOD;
+            if (m.name.lexeme === "init")
+                declaration = FunctionType.INITIALIZER;
+            this.resolve_function(m, declaration);
+        }
+
+        this.end_scope();
+        this.current_class = enclosing_class;
+    }
+
+    visitGetExpr(expr: GetExpr): void
+    {
+        this.resolve_expr(expr.object);
+    }
+
+    visitSetExpr(expr: SetExpr): void
+    {
+        this.resolve_expr(expr.value);
+        this.resolve_expr(expr.object);
+    }
+
+    visitThisExpr(expr: ThisExpr): void
+    {
+        if (this.current_class == ClassType.NONE)
+        {
+            throw new Error(`Can't use 'this' outside of a class.`)
+        }
+        this.resolve_local(expr, expr.keyword);
     }
 
     get_last_scope(): Map<string, boolean> | null

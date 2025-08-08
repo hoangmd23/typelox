@@ -2,16 +2,16 @@ import {
     AssignExpr,
     BinaryExpr,
     CallExpr,
-    Expr,
+    Expr, GetExpr,
     GroupingExpr,
     LiteralExpr,
-    LogicalExpr,
+    LogicalExpr, SetExpr, ThisExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
 import {Token, TokenType} from "./token.js";
 import {
-    BlockStmt,
+    BlockStmt, ClassStmt,
     ExprStmt,
     FunctionStmt,
     IfStmt,
@@ -42,7 +42,7 @@ export class Parser
         return res;
     }
 
-    private function(): Stmt
+    private function(): FunctionStmt
     {
         const name = this.expect(TokenType.IDENTIFIER);
         this.expect(TokenType.LEFT_PAREN);
@@ -80,7 +80,26 @@ export class Parser
             this.next();
             return this.function();
         }
+        else if (this.peek_match(TokenType.CLASS))
+        {
+            this.next();
+            return this.class_stmt();
+        }
         return this.statement();
+    }
+
+    private class_stmt(): Stmt
+    {
+        const name = this.next();
+        this.expect(TokenType.LEFT_BRACE);
+
+        const methods: FunctionStmt[] = [];
+        while (!this.peek_match(TokenType.RIGHT_BRACE) && this.has_more())
+        {
+            methods.push(this.function());
+        }
+        this.expect(TokenType.RIGHT_BRACE);
+        return new ClassStmt(name, methods);
     }
 
     private var_declaration(): Stmt
@@ -287,6 +306,10 @@ export class Parser
                 const name = expr.name;
                 return new AssignExpr(name, value)
             }
+            else if (expr instanceof GetExpr)
+            {
+                return new SetExpr(expr.object, expr.name, value);
+            }
 
             throw new Error('Invalid assignment target.');
         }
@@ -408,6 +431,12 @@ export class Parser
             {
                 expr = this.finish_call(expr);
             }
+            else if (this.peek_match(TokenType.DOT))
+            {
+                this.next();
+                const name = this.next();
+                expr = new GetExpr(expr, name);
+            }
             else
             {
                 break;
@@ -460,6 +489,8 @@ export class Parser
                 return new GroupingExpr(expr);
             case TokenType.IDENTIFIER:
                 return new VarExpr(token);
+            case TokenType.THIS:
+                return new ThisExpr(token);
             default:
                 throw new Error("Unexpected token type");
         }

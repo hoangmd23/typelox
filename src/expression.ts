@@ -3,13 +3,26 @@ import {Token} from './token.js'
 export interface ExprVisitor<T>
 {
     visitBinaryExpr(expr: BinaryExpr): T;
+
     visitUnaryExpr(expr: UnaryExpr): T;
+
     visitGroupingExpr(expr: GroupingExpr): T;
+
     visitLiteralExpr(expr: LiteralExpr): T;
+
     visitVarExpr(expr: VarExpr): T;
+
     visitAssignExpr(expr: AssignExpr): T;
+
     visitLogicalExpr(expr: LogicalExpr): T;
+
     visitCallExpr(expr: CallExpr): T;
+
+    visitGetExpr(expr: GetExpr): T;
+
+    visitSetExpr(expr: SetExpr): T;
+
+    visitThisExpr(expr: ThisExpr): T;
 }
 
 export abstract class Expr
@@ -46,7 +59,7 @@ export class GroupingExpr extends Expr
         super();
         this.expression = expression;
     }
-    
+
     public accept<T>(visitor: ExprVisitor<T>): T
     {
         return visitor.visitGroupingExpr(this);
@@ -62,7 +75,7 @@ export class LiteralExpr extends Expr
         super();
         this.value = value;
     }
-    
+
     public accept<T>(visitor: ExprVisitor<T>): T
     {
         return visitor.visitLiteralExpr(this);
@@ -161,4 +174,56 @@ export class CallExpr extends Expr
     }
 }
 
+export class GetExpr extends Expr
+{
+    readonly object: Expr;
+    readonly name: Token;
 
+    constructor(object: Expr, name: Token)
+    {
+        super();
+        this.object = object;
+        this.name = name;
+    }
+
+    public accept<T>(visitor: ExprVisitor<T>): T
+    {
+        return visitor.visitGetExpr(this);
+    }
+}
+
+export class SetExpr extends Expr
+{
+    readonly object: Expr;
+    readonly name: Token;
+    readonly value: Expr;
+
+    constructor(object: Expr, name: Token, value: Expr)
+    {
+        super();
+        this.object = object;
+        this.name = name;
+        this.value = value;
+    }
+
+    public accept<T>(visitor: ExprVisitor<T>): T
+    {
+        return visitor.visitSetExpr(this);
+    }
+}
+
+export class ThisExpr extends Expr
+{
+    readonly keyword: Token;
+
+    constructor(keyword: Token)
+    {
+        super();
+        this.keyword = keyword;
+    }
+
+    public accept<T>(visitor: ExprVisitor<T>): T
+    {
+        return visitor.visitThisExpr(this);
+    }
+}

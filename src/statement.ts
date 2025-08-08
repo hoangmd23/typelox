@@ -23,6 +23,8 @@ export interface StmtVisitor<T>
     visitFunctionStmt(stmt: FunctionStmt): T;
 
     visitReturnStmt(stmt: ReturnStmt): T;
+
+    visitClassStmt(stmt: ClassStmt): T;
 }
 
 export class ExprStmt extends Stmt
@@ -164,5 +166,23 @@ export class ReturnStmt extends Stmt
     public accept<T>(visitor: StmtVisitor<T>): void
     {
         visitor.visitReturnStmt(this);
+    }
+}
+
+export class ClassStmt extends Stmt
+{
+    public readonly name: Token;
+    public readonly methods: FunctionStmt[];
+
+    constructor(name: Token, methods: FunctionStmt[])
+    {
+        super();
+        this.name = name;
+        this.methods = methods;
+    }
+
+    public accept<T>(visitor: StmtVisitor<T>): void
+    {
+        visitor.visitClassStmt(this);
     }
 }

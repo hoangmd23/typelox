@@ -5,19 +5,21 @@ import {
     BinaryExpr,
     CallExpr,
     Expr,
-    type ExprVisitor,
+    type ExprVisitor, GetExpr,
     GroupingExpr,
     LiteralExpr,
-    LogicalExpr,
+    LogicalExpr, SetExpr, ThisExpr,
     UnaryExpr,
     VarExpr
 } from "./expression.js";
 import {
     BlockStmt,
+    ClassStmt,
     type ExprStmt,
     FunctionStmt,
     IfStmt,
-    type PrintStmt, ReturnStmt,
+    type PrintStmt,
+    ReturnStmt,
     Stmt,
     type StmtVisitor,
     VarStmt,
@@ -49,12 +51,14 @@ export class LoxFunction extends LoxCallable
 {
     private readonly func: FunctionStmt;
     private readonly closure: Environment;
+    private readonly is_initializer: boolean;
 
-    constructor(f: FunctionStmt, closure: Environment)
+    constructor(f: FunctionStmt, closure: Environment, is_initializer: boolean)
     {
         super();
         this.func = f;
         this.closure = closure;
+        this.is_initializer = is_initializer;
     }
 
     arity(): number
@@ -78,6 +82,10 @@ export class LoxFunction extends LoxCallable
         {
             if (ex instanceof Return)
             {
+                if (this.is_initializer)
+                {
+                    return this.closure.get_at(0, 'this');
+                }
                 return ex.value;
             }
             else
@@ -85,7 +93,16 @@ export class LoxFunction extends LoxCallable
                 throw ex;
             }
         }
+        if (this.is_initializer)
+            return this.closure.get_at(0, 'this');
         return null;
+    }
+
+    bind(instance: LoxInstance): LoxFunction
+    {
+        const env = new Environment(this.closure);
+        env.define("this", instance);
+        return new LoxFunction(this.func, env, this.is_initializer);
     }
 
     to_string(): string
@@ -109,6 +126,82 @@ class GlobalClock extends LoxCallable
     to_string(): string
     {
         return "<GlobalClock>";
+    }
+}
+
+class LoxInstance
+{
+    private klass: LoxClass;
+    private readonly fields = new Map<string, any>();
+
+    constructor(klass: LoxClass)
+    {
+        this.klass = klass;
+    }
+
+    get(name: Token): any
+    {
+        if (this.fields.has(name.lexeme))
+        {
+            return this.fields.get(name.lexeme);
+        }
+
+        const method = this.klass.find_method(name.lexeme);
+        if (method != null)
+            return method.bind(this);
+
+        throw new RuntimeError(name, `Undefined property ${name.lexeme}`);
+    }
+
+    set(name: Token, value: any): void
+    {
+        this.fields.set(name.lexeme, value);
+    }
+}
+
+class LoxClass extends LoxCallable
+{
+    readonly name: String;
+    readonly methods: Map<string, LoxFunction>;
+
+    constructor(name: string, methods: Map<string, LoxFunction>)
+    {
+        super();
+        this.name = name;
+        this.methods = methods;
+    }
+
+    arity(): number
+    {
+        const initializer = this.find_method('init');
+        if (initializer == null)
+            return 0;
+        return initializer.arity();
+    }
+
+    call(i: Interpreter, args: any[]): any
+    {
+        let instance = new LoxInstance(this);
+        const initializer = this.find_method('init');
+        if (initializer != null)
+        {
+            initializer.bind(instance).call(i, args);
+        }
+        return instance;
+    }
+
+    to_string(): string
+    {
+        return "";
+    }
+
+    find_method(name: string): LoxFunction | null
+    {
+        if (this.methods.has(name))
+        {
+            return this.methods.get(name)!;
+        }
+        return null;
     }
 }
 
@@ -315,7 +408,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void>
 
     visitFunctionStmt(stmt: FunctionStmt): void
     {
-        const func = new LoxFunction(stmt, this.env);
+        const func = new LoxFunction(stmt, this.env, false);
         this.env.define(stmt.name.lexeme, func);
     }
 
@@ -367,6 +460,48 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void>
         {
             throw new RuntimeError(expr.paren, "Can only call functions and classes.")
         }
+    }
+
+    visitClassStmt(stmt: ClassStmt): void
+    {
+        this.env.define(stmt.name.lexeme, null);
+        const methods: Map<string, LoxFunction> = new Map();
+        for (const m of stmt.methods)
+        {
+            const func = new LoxFunction(m, this.env, m.name.lexeme === "init");
+            methods.set(m.name.lexeme, func);
+        }
+        const klass = new LoxClass(stmt.name.lexeme, methods);
+        this.env.assign(stmt.name, klass);
+    }
+
+    visitGetExpr(expr: GetExpr): any
+    {
+        const object = this.evaluate(expr.object);
+        if (object instanceof LoxInstance)
+        {
+            return object.get(expr.name);
+        }
+
+        throw new RuntimeError(expr.name, "Only instances have properties.")
+    }
+
+    visitSetExpr(expr: SetExpr): any
+    {
+        const object = this.evaluate(expr.object);
+        if (!(object instanceof LoxInstance))
+        {
+            throw new RuntimeError(expr.name, `Only instances have fields.`)
+        }
+
+        const value = this.evaluate(expr.value);
+        object.set(expr.name, value);
+        return value;
+    }
+
+    visitThisExpr(expr: ThisExpr): any
+    {
+        return this.look_up_variable(expr.keyword, expr);
     }
 
     evaluate(expr: Expr): any
